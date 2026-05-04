@@ -1,3 +1,7 @@
 .ipynb_checkpoints/
 data/
 runs/
+
+.Ds_Store
+.vscode/
+
