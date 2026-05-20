@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Placement Predictor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    * { font-family: 'Inter', sans-serif; }
+
+    .gauge-ring {
+      stroke-dasharray: 251.2;
+      stroke-dashoffset: 251.2;
+      transition: stroke-dashoffset 1s ease, stroke 0.5s ease;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 20px; width: 20px;
+      border-radius: 50%;
+      background: #6366f1;
+      cursor: pointer;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.25);
+      transition: box-shadow 0.2s;
+    }
+    .slider::-webkit-slider-thumb:hover { box-shadow: 0 0 0 6px rgba(99,102,241,0.2); }
+    .slider::-webkit-slider-runnable-track {
+      height: 6px; border-radius: 3px;
+      background: linear-gradient(to right, #6366f1 var(--pct, 0%), #e2e8f0 var(--pct, 0%));
+    }
+
+    .fade-in { animation: fadeIn 0.5s ease forwards; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+    .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900">
+
+  <!-- Header -->
+  <header class="border-b border-white/10 bg-white/5 backdrop-blur-md">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-indigo-500 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-indigo-500/30">S</div>
+      <div>
+        <h1 class="text-white font-semibold text-lg leading-tight">Student Placement Predictor</h1>
+        <p class="text-indigo-300 text-xs">Powered by PyTorch &middot; Binary Classification Model</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-10 grid md:grid-cols-2 gap-8">
+
+    <!-- Left: Inputs -->
+    <div class="space-y-6">
+      <div>
+        <h2 class="text-white text-xl font-semibold">Student Profile</h2>
+        <p class="text-slate-400 text-sm mt-1">Adjust the sliders and click predict.</p>
+      </div>
+
+      <!-- study_hours -->
+      <div class="bg-white/5 border border-white/10 rounded-2xl p-5 card-hover">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">📚</span>
+            <span class="text-white font-medium">Study Hours / Day</span>
+          </div>
+          <span id="study_hours_val" class="text-indigo-400 font-bold text-lg tabular-nums">6</span>
+        </div>
+        <input type="range" id="study_hours" class="slider w-full" min="1" max="11" step="1" value="6"
+          oninput="updateSlider(this,'study_hours_val')" />
+        <div class="flex justify-between text-xs text-slate-500 mt-1"><span>1 hr</span><span>11 hrs</span></div>
+      </div>
+
+      <!-- sleep_hours -->
+      <div class="bg-white/5 border border-white/10 rounded-2xl p-5 card-hover">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">😴</span>
+            <span class="text-white font-medium">Sleep Hours / Night</span>
+          </div>
+          <span id="sleep_hours_val" class="text-indigo-400 font-bold text-lg tabular-nums">7</span>
+        </div>
+        <input type="range" id="sleep_hours" class="slider w-full" min="4" max="9" step="1" value="7"
+          oninput="updateSlider(this,'sleep_hours_val')" />
+        <div class="flex justify-between text-xs text-slate-500 mt-1"><span>4 hrs</span><span>9 hrs</span></div>
+      </div>
+
+      <!-- attendance -->
+      <div class="bg-white/5 border border-white/10 rounded-2xl p-5 card-hover">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🏫</span>
+            <span class="text-white font-medium">Attendance Rate</span>
+          </div>
+          <span id="attendance_val" class="text-indigo-400 font-bold text-lg tabular-nums">70<span class="text-sm">%</span></span>
+        </div>
+        <input type="range" id="attendance" class="slider w-full" min="40" max="100" step="1" value="70"
+          oninput="updateSlider(this,'attendance_val','%')" />
+        <div class="flex justify-between text-xs text-slate-500 mt-1"><span>40%</span><span>100%</span></div>
+      </div>
+
+      <!-- exam_score -->
+      <div class="bg-white/5 border border-white/10 rounded-2xl p-5 card-hover">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">📝</span>
+            <span class="text-white font-medium">Exam Score</span>
+          </div>
+          <span id="exam_score_val" class="text-indigo-400 font-bold text-lg tabular-nums">70<span class="text-sm">/100</span></span>
+        </div>
+        <input type="range" id="exam_score" class="slider w-full" min="26.67" max="100" step="0.01" value="70"
+          oninput="updateSlider(this,'exam_score_val','/100',true)" />
+        <div class="flex justify-between text-xs text-slate-500 mt-1"><span>26.67</span><span>100</span></div>
+      </div>
+
+      <button onclick="predict()"
+        class="w-full py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-semibold text-base transition-all shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2">
+        <span id="btn-icon">⚡</span>
+        <span id="btn-text">Predict Placement</span>
+      </button>
+    </div>
+
+    <!-- Right: Result -->
+    <div class="flex flex-col gap-6">
+
+      <!-- Gauge card -->
+      <div id="result-card" class="bg-white/5 border border-white/10 rounded-2xl p-8 flex flex-col items-center justify-center min-h-[340px]">
+        <div id="placeholder" class="text-center">
+          <div class="text-5xl mb-4">🎓</div>
+          <p class="text-slate-400 text-sm">Fill in the student details<br/>and click <strong class="text-white">Predict Placement</strong></p>
+        </div>
+
+        <div id="result-content" class="hidden w-full flex-col items-center gap-6 fade-in">
+          <!-- SVG Gauge -->
+          <div class="relative w-44 h-44">
+            <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="#1e293b" stroke-width="12"/>
+              <circle id="gauge-arc" class="gauge-ring" cx="50" cy="50" r="40" fill="none"
+                stroke="#6366f1" stroke-width="12" stroke-linecap="round"/>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span id="prob-text" class="text-3xl font-bold text-white tabular-nums">0%</span>
+              <span class="text-xs text-slate-400 mt-0.5">Probability</span>
+            </div>
+          </div>
+
+          <!-- Verdict -->
+          <div id="verdict-box" class="text-center rounded-2xl px-8 py-4 w-full">
+            <p class="text-xs font-medium uppercase tracking-widest mb-1" id="verdict-label">Result</p>
+            <p class="text-3xl font-bold" id="verdict-text">—</p>
+          </div>
+
+          <!-- Mini stats -->
+          <div class="grid grid-cols-2 gap-3 w-full text-sm">
+            <div class="bg-white/5 rounded-xl p-3 text-center">
+              <p class="text-slate-400 text-xs mb-1">Confidence</p>
+              <p id="conf-text" class="text-white font-semibold">—</p>
+            </div>
+            <div class="bg-white/5 rounded-xl p-3 text-center">
+              <p class="text-slate-400 text-xs mb-1">Model</p>
+              <p class="text-white font-semibold">Linear (4→1)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info card -->
+      <div class="bg-white/5 border border-white/10 rounded-2xl p-5">
+        <h3 class="text-white font-medium mb-3 text-sm uppercase tracking-wide">Model Details</h3>
+        <div class="space-y-2 text-xs text-slate-400">
+          <div class="flex justify-between"><span>Architecture</span><span class="text-slate-200">nn.Linear(4, 1)</span></div>
+          <div class="flex justify-between"><span>Loss Function</span><span class="text-slate-200">BCEWithLogitsLoss</span></div>
+          <div class="flex justify-between"><span>Optimizer</span><span class="text-slate-200">Adam (lr=0.01)</span></div>
+          <div class="flex justify-between"><span>Epochs</span><span class="text-slate-200">200</span></div>
+          <div class="flex justify-between"><span>Test Accuracy</span><span class="text-emerald-400 font-medium">~96.4%</span></div>
+          <div class="flex justify-between"><span>Features</span><span class="text-slate-200">4 (scaled)</span></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function updateSlider(el, valId, suffix = '', isFloat = false) {
+      const min = parseFloat(el.min), max = parseFloat(el.max), val = parseFloat(el.value);
+      const pct = ((val - min) / (max - min)) * 100;
+      el.style.setProperty('--pct', pct + '%');
+
+      const display = isFloat ? parseFloat(val).toFixed(1) : parseInt(val);
+      const span = document.getElementById(valId);
+      if (suffix === '%') span.innerHTML = display + '<span class="text-sm">%</span>';
+      else if (suffix === '/100') span.innerHTML = display + '<span class="text-sm">/100</span>';
+      else span.textContent = display;
+    }
+
+    // Init slider tracks
+    document.querySelectorAll('.slider').forEach(el => updateSlider(el, el.id + '_val',
+      el.id === 'attendance' ? '%' : el.id === 'exam_score' ? '/100' : '',
+      el.id === 'exam_score'
+    ));
+
+    async function predict() {
+      const btn = document.getElementById('btn-text');
+      const icon = document.getElementById('btn-icon');
+      btn.textContent = 'Predicting…';
+      icon.textContent = '⏳';
+
+      const payload = {
+        study_hours: parseFloat(document.getElementById('study_hours').value),
+        sleep_hours: parseFloat(document.getElementById('sleep_hours').value),
+        attendance:  parseFloat(document.getElementById('attendance').value),
+        exam_score:  parseFloat(document.getElementById('exam_score').value),
+      };
+
+      try {
+        const res = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        showResult(data);
+      } catch (e) {
+        alert('Prediction failed. Is the server running?');
+      } finally {
+        btn.textContent = 'Predict Placement';
+        icon.textContent = '⚡';
+      }
+    }
+
+    function showResult(data) {
+      document.getElementById('placeholder').classList.add('hidden');
+      const content = document.getElementById('result-content');
+      content.classList.remove('hidden');
+      content.classList.add('flex');
+      content.classList.remove('fade-in');
+      void content.offsetWidth; // reflow
+      content.classList.add('fade-in');
+
+      // Gauge
+      const prob = data.probability;
+      const circumference = 251.2;
+      const offset = circumference - (prob / 100) * circumference;
+      const arc = document.getElementById('gauge-arc');
+      arc.style.strokeDashoffset = offset;
+      arc.style.stroke = data.placed ? '#10b981' : '#ef4444';
+
+      document.getElementById('prob-text').textContent = prob + '%';
+
+      // Verdict
+      const box = document.getElementById('verdict-box');
+      const label = document.getElementById('verdict-label');
+      const text = document.getElementById('verdict-text');
+
+      if (data.placed) {
+        box.className = 'text-center rounded-2xl px-8 py-4 w-full bg-emerald-500/15 border border-emerald-500/30';
+        label.className = 'text-xs font-medium uppercase tracking-widest mb-1 text-emerald-400';
+        text.className = 'text-3xl font-bold text-emerald-400';
+        label.textContent = '✅ Prediction';
+        text.textContent = 'Placed';
+      } else {
+        box.className = 'text-center rounded-2xl px-8 py-4 w-full bg-red-500/15 border border-red-500/30';
+        label.className = 'text-xs font-medium uppercase tracking-widest mb-1 text-red-400';
+        text.className = 'text-3xl font-bold text-red-400';
+        label.textContent = '❌ Prediction';
+        text.textContent = 'Not Placed';
+      }
+
+      // Confidence label
+      const conf = prob >= 90 ? 'Very High' : prob >= 70 ? 'High' : prob >= 50 ? 'Moderate' : 'Low';
+      document.getElementById('conf-text').textContent = conf + ` (${prob}%)`;
+    }
+  </script>
+</body>
+</html>
